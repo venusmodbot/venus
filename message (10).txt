@@ -1,0 +1,396 @@
+import discord, time, asyncio, sqlite3, logging, os, requests
+from discord.ext import commands
+from discord.ext.commands import *
+from colorama import Fore as C
+from time import sleep
+import random
+
+
+BOT_TOKEN = ('NzY0ODY2NTM3OTgyOTE4Njc2.X4MfeQ.fYRgdi_AYR-yUfx1YriT2jVnPE0')
+BOT_PREFIX = (';')
+
+loop = asyncio.get_event_loop()
+logging.basicConfig(format="%(levelname)s -- %(name)s.%(funcName)s : %(message)s", level=logging.INFO)
+client = commands.AutoShardedBot(
+    command_prefix=BOT_PREFIX,
+    case_insensitive=True,
+    shard_ids=[*range(1)],
+    shard_count=1
+)
+client.remove_command("help")
+__version__ = '1.0.0'
+
+
+
+async def status_task():
+    while True:
+        await client.change_presence(status=discord.Status.idle, activity=discord.Activity(type=discord.ActivityType.watching, name=f";help | {round(client.latency *1000)}ms."))
+        await asyncio.sleep(10)
+        await client.change_presence(status=discord.Status.idle, activity=discord.Activity(type=discord.ActivityType.watching, name=f"Made by Venue, Drip & Jays. | {round(client.latency *1000)}ms."))
+        await asyncio.sleep(10)
+
+def _setupDatabase(db):
+    with sqlite3.connect(db) as con:
+        c = con.cursor()
+        c.execute('''CREATE TABLE IF NOT EXISTS `reactions` (
+                    	`id`	INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+                    	`command`	TEXT NOT NULL,
+                    	`url`	TEXT NOT NULL UNIQUE,
+                    	`author`	TEXT
+                    );''')
+        con.commit()
+        c.close()
+
+@client.event
+async def on_shard_ready(shard_id):
+    print(f"Shard Loaded: {shard_id}")
+
+@client.event
+async def on_ready():
+    print(C.BLACK + '----------------------------' + C.RESET)
+    print(f'BOTNAME: {client.user.name}')
+    print(f'BOTID: {client.user.id}')
+    client.AppInfo = await client.application_info()
+    print(C.BLACK + '----------------------------' + C.RESET)
+    print(C.GREEN + "Connected To Discord API" + C.RESET)
+    client.startTime = time.time()
+    _setupDatabase('reaction.db')
+    client.loop.create_task(status_task())
+
+
+#help commands
+
+@client.command(aliases=["cmds", "commands"])
+async def help(ctx):
+    embed = discord.Embed(color=0xFF6103, timestamp=ctx.message.created_at)
+    embed.set_author(
+        name="Venus's Bot Commands.",
+        icon_url=ctx.author.avatar_url)
+    embed.add_field(
+        name=f"{BOT_PREFIX}help / cmds", value="Shows This Message.", inline=False)
+    embed.add_field(
+        name=f"{BOT_PREFIX}modhelp",
+        value="Shows The Commands For Moderation.",
+        inline=False)
+    embed.add_field(
+        name=f"{BOT_PREFIX}genhelp",
+        value="Shows Commands For General.",
+        inline=False)
+    embed.add_field(
+        name=f"{BOT_PREFIX}funhelp",
+        value="Fun CMDS.",
+        inline=False)
+    embed.add_field(
+        name="NOT CAP SENSITIVE",
+        value="Commands Are Not Cap Sensitive.",
+        inline=False)
+
+    await ctx.send(embed=embed)
+
+
+@client.command()
+async def modhelp(ctx):
+    embed = discord.Embed(color=0xFF6103, timestamp=ctx.message.created_at)
+    embed.set_author(
+        name="Venus's Mod Commands.",
+        icon_url=ctx.author.avatar_url)
+    embed.add_field(
+        name=f"{BOT_PREFIX}Kick", value="Kicks Selected Member.", inline=False)
+    embed.add_field(
+        name=f"{BOT_PREFIX}Ban", value="Bans Selected Member.", inline=False)
+    embed.add_field(
+        name=f"{BOT_PREFIX}Unban", value="Unbans Selected Member.", inline=False)
+    embed.add_field(
+        name=f"{BOT_PREFIX}Purge [Amount]",
+        value="Deletes Selected Amount Of Messages.",
+        inline=False)
+
+    await ctx.send(embed=embed)
+
+
+@client.command()
+async def genhelp(ctx):
+    embed = discord.Embed(color=0xFF6103, timestamp=ctx.message.created_at)
+    embed.set_author(
+        name="Venus's General Commands.",
+        icon_url=ctx.author.avatar_url)
+    embed.add_field(
+        name=f"{BOT_PREFIX}Whois [Member]",
+        value="Gets Info On Selected Member.",
+        inline=False)
+    embed.add_field(
+        name=f"{BOT_PREFIX}embed",
+        value="Sends a msg in embed.",
+        inline=False)
+    embed.add_field(
+        name=f"{BOT_PREFIX}Av [Member]",
+        value="Gets Selected Members Avatar.",
+        inline=False)
+    embed.add_field(
+        name=f"{BOT_PREFIX}Ping",
+        value="Gets The Bots Latency In MiliSeconds.",
+        inline=False)
+
+    await ctx.send(embed=embed)
+
+
+@client.command()
+async def funhelp(ctx):
+    embed = discord.Embed(color=0xFF6103, timestamp=ctx.message.created_at)
+    embed.set_author(
+        name="Venus's Fun Commands.",
+        icon_url=ctx.bot.avatar_url)
+    embed.add_field(
+        name=f"{BOT_PREFIX}dog",
+        value="Gets a fetched picture of a dog.",
+        inline=False)
+    embed.add_field(
+        name=f"{BOT_PREFIX}chat",
+        value="Makes the bot say something.",
+        inline=False)
+    embed.add_field(
+        name=f"{BOT_PREFIX}Dick [Member]",
+        value="Gets Selected Members 'Dick size'.",
+        inline=False)
+    embed.add_field(
+        name=f"{BOT_PREFIX}Ping",
+        value="Gets The Bots Latency In MiliSeconds.",
+        inline=False)
+
+    await ctx.send(embed=embed)
+
+
+
+
+#------------------------------
+
+#commands
+
+@client.command(aliases=['woofer', 'puppy'])
+async def dog(ctx):
+    await ctx.message.delete()
+    r = requests.get("https://dog.ceo/api/breeds/image/random").json()
+    em = discord.Embed()
+    em.set_image(url=str(r['message']))
+    try:
+        await ctx.send(embed=em)
+    except:
+        await ctx.send(str(r['message']))
+
+
+
+@client.command(aliases=['dong', 'penis'])
+async def dick(ctx, *, user: discord.Member = None):
+  await ctx.message.delete()
+  if user is None:
+      user = ctx.author
+  size = random.randint(1, 32)
+  dong = ""
+  for _i in range(0, size):
+      dong += "="
+  em = discord.Embed(title=f"{user}'s Dick size", description=f"8{dong}D", colour=0x0000)
+  await ctx.send(embed=em)
+
+
+
+@client.command()
+async def av(ctx, member: discord.Member):
+        embed = discord.Embed(color = discord.Color.from_rgb(147,112,219), timestamp=ctx.message.created_at)
+        embed.set_author(name=f" {member}'s AV") 
+        embed.set_image(url='{}'.format(member.avatar_url))
+        embed.set_footer(text=member.id)
+        await ctx.send(embed=embed)
+        await ctx.message.delete()
+
+
+
+
+@client.command(pass_contex=True)
+async def whois(ctx, member: discord.Member):
+  await ctx.message.delete()
+  member = ctx.author if not member else member
+  roles = [role for role in member.roles]
+
+  embed = discord.Embed(colour=member.color, timestamp=ctx.message.created_at)
+  
+  embed.set_author(name=f"{member} - info")
+  embed.set_thumbnail(url=member.avatar_url)
+  embed.set_footer(text=f"Requested by {ctx.author}", icon_url=ctx.author.avatar_url)
+
+  embed.add_field(name="User ID", value=member.id)
+  embed.add_field(name="Nickname", value=member.display_name)
+
+  embed.add_field(name="Creation Date", value=member.created_at.strftime("%a, %#d %B, %Y, %I:%M %p UTC"))
+  embed.add_field(name="Guild Join Date", value=member.joined_at.strftime("%a, %#d %B, %Y, %I:%M %p UTC"))
+
+  embed.add_field(name=f"Roles ({len(roles)})", value=" ".join([role.mention for role in roles]))
+  embed.add_field(name="Highest Role", value=member.top_role.mention)
+
+  embed.add_field(name="Bot?", value=member.bot)
+
+  await ctx.send(embed=embed)
+
+
+
+@client.command(aliases=["ms", "latency"])
+async def ping(ctx):
+	await ctx.trigger_typing()
+	embed=discord.Embed(title=None, description=f'Ping: {round(client.latency *1000)}', color=0x2874A6)
+	await ctx.send(embed=embed)
+
+@client.command(pass_contex=True)
+async def embed(ctx, *, text):
+  await ctx.message.delete()
+  await ctx.send(embed = discord.Embed(description = text))
+  embed = discord.Embed(color = discord.Color.from_rgb(147,112,219), timestamp=ctx.message.created_at)
+
+
+@client.command(pass_contex=True)
+async def serverinfo(ctx, guild: discord.Guild = None):
+  guild = ctx.guild if not guild else guild
+  embed = discord.Embed(title=f"Server info about {guild}", description="v1 SelfBot", timestamp = ctx.message.created_at, color=discord.Colour.Green())
+  embed.set_thumbnail(url=guild.icon_url)
+  embed.add_field(name="**Description:**", value=guild.description, inline=False)
+  embed.add_field(name="**Channel count:**", value=len(guild.channels), inline=False)
+  embed.add_field(name="**Role count:**", value=len(guild.roles), inline=False)
+  embed.add_field(name="**Booster count:**", value=guild.premium_subscription_count, inline=False)
+  embed.add_field(name="**Server created at:**", value=guild.created_at, inline=False)
+  embed.add_field(name="**Max Emoji:**", value=guild.emoji_limit, inline=False)
+  embed.add_field(name="**Owner**:", value=guild.owner, inline=False)
+  embed.set_footer(text=f"Command sent by {ctx.author}", icon_url=ctx.author.avatar_url)
+  
+  await ctx.send(embed=embed)
+  await ctx.message.delete()
+
+
+@client.command()
+@commands.has_permissions(kick_members=True)
+async def kick(ctx, member: discord.Member, *, reason=None):
+    await ctx.message.delete()
+    if ctx.author.top_role < member.top_role:
+        embed = discord.Embed(description=f"User Is Higher Than You. :man_facepalming:")
+        await ctx.send(embed=embed)
+    else:
+        embed = discord.Embed(description=f'User {member} has been kicked.')
+        await member.kick(reason=reason)
+        await ctx.send(embed=embed)
+
+
+
+
+@client.command()
+@commands.has_permissions(ban_members=True)
+async def ban(ctx, member: discord.Member, *, reason=None):
+    await ctx.message.delete()
+    try:
+        embed = discord.Embed(description=f'User {member} has been banned.')
+        await member.ban(reason=reason)
+        await ctx.send(embed=embed)
+    except:
+        embed = discord.Embed(description=f"Couldn't ban that user.")
+        await ctx.send(embed=embed)
+
+
+
+@client.command()
+@commands.has_permissions(ban_members=True)
+async def unban(ctx, *, member):
+    await ctx.message.delete()
+    banned_users = await ctx.guild.bans()
+    member_name, member_discriminator = member.split('#')
+
+    for ban_entry in banned_users:
+        user = ban_entry.user
+
+        if (user.name, user.discriminator) == (member_name, member_discriminator):
+            await ctx.guild.unban(user)
+            await ctx.send(f'Unbanned {user.mention}')
+            return
+
+
+@client.command()
+@commands.has_permissions(manage_messages=True)
+async def purge(ctx, limit:int):
+    await ctx.message.delete()
+    try:
+        embed = discord.Embed(
+            description=f'Succesfully purged {limit} messages.')
+        await ctx.channel.purge(limit=limit)
+        await ctx.send(embed=embed)
+    except:
+        embed = discord.Embed(
+            description=f"Couldn't purge {limit} messages.")
+        await ctx.send(embed=embed)
+
+
+
+
+#error handlers
+
+
+
+@kick.error
+async def kick_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send(
+            embed=create_embed(
+                f'You do not have the {"".join(error.missing_perms)} permission for this command'
+            ))
+    elif isinstance(error, commands.BotMissingPermissions):
+        await ctx.send(
+            embed=create_embed(
+                f'Please give the bot {"".join(error.missing_perms)} permission to run this command'
+            ))
+
+
+
+@ban.error
+async def ban_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send(
+            embed=create_embed(
+                f'You do not have the {"".join(error.missing_perms)} permission for this command'
+            ))
+    elif isinstance(error, commands.BotMissingPermissions):
+        await ctx.send(
+            embed=create_embed(
+                f'Please give the bot {"".join(error.missing_perms)} permission to run this command'
+            ))
+
+
+
+@unban.error
+async def unban_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send(
+            embed=create_embed(
+                f'You do not have the {"".join(error.missing_perms)} permission for this command'
+            ))
+    elif isinstance(error, commands.BotMissingPermissions):
+        await ctx.send(
+            embed=create_embed(
+                f'Please give the bot {"".join(error.missing_perms)} permission to run this command'
+            ))
+
+
+
+@purge.error
+async def purge_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send(
+            embed=create_embed(
+                f'You do not have the {"".join(error.missing_perms)} permission for this command'
+            ))
+    elif isinstance(error, commands.BotMissingPermissions):
+        await ctx.send(
+            embed=create_embed(
+                f'Please give the bot {"".join(error.missing_perms)} permission to run this command'
+            ))
+
+
+
+
+for filename in os.listdir("./cogs"):
+  if filename.endswith(".py"):
+    client.load_extension(f"cogs.{filename[:-3]}")
+client.run(BOT_TOKEN)
